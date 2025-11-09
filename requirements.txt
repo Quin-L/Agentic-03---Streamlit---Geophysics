@@ -1,0 +1,7 @@
+matplotlib
+numpy
+pandas
+aisuites
+dotenv
+streamlit
+openai

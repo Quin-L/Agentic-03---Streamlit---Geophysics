@@ -1,0 +1,68 @@
+============================================================
+GEOTECHNICAL DATA MASKING REPORT
+Generated: 2025-08-10 00:22:11
+============================================================
+
+1. BOREHOLE ID MAPPINGS
+------------------------------
+Total boreholes masked: 345
+Sample mappings:
+  ARU-K-AH05 -> BH-001
+  ARU-K-AH06 -> BH-002
+  ARU-K-AH09 -> BH-003
+  ARU-K-AH10 -> BH-004
+  ARU-K-AH11 -> BH-005
+  ARU-K-AH13 -> BH-006
+  ARU-K-AH14 -> BH-007
+  ARU-K-AH16 -> BH-008
+  ARU-K-AH17 -> BH-009
+  ARU-K-AH18 -> BH-010
+
+2. LOCATION DATA OFFSETS
+------------------------------
+Easting offset: +100,000 m
+Northing offset: +50,000 m
+Chainage offset: -20,000 m
+Surface RL variation: ±5 m
+
+3. GEOLOGICAL CLASSIFICATIONS
+------------------------------
+Geology mappings:
+  RS_XW -> ROCK_A
+  Dcf -> SOIL_A
+  ALLUVIUM -> ALLUVIUM_GEN
+  Rin -> ROCK_B
+  Tos -> ROCK_C
+  Rjbw -> ROCK_D
+  FILL -> FILL_GEN
+  TOPSOIL -> TOPSOIL_GEN
+  Toc -> ROCK_E
+  ASPHALT -> PAVEMENT
+
+4. REPORT REFERENCES
+------------------------------
+Total reports masked: 6
+  GHD GFR_02.04.02 12534697 -> Geotechnical Report A
+  DTMR GFR_FG23024-R4.0 -> Geotechnical Report B
+  GHD-Mott MacDonald AGS File -> Geotechnical Report C
+  QR Historical Drawings -> Geotechnical Report D
+  DTMR Additional Borehole Logs -> Geotechnical Report E
+  ARUP Kuraby GFR -> Geotechnical Report F
+
+5. TECHNICAL DATA VARIATIONS
+------------------------------
+SPT N-values: 0.8-1.2x multiplier
+Atterberg Limits: ±5% for LL, ±3% for PL
+UCS: 0.85-1.15x multiplier
+Cohesion: 0.9-1.1x multiplier
+Friction angle: ±2 degrees
+MDD: ±0.05 t/m³
+OMC: ±2%
+CBR: 0.85-1.15x multiplier
+pH: ±0.3 units
+Chemical properties: 0.8-1.2x multiplier
+PSD: ±5% smooth variation
+
+============================================================
+END OF REPORT
+============================================================
