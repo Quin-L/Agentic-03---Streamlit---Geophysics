@@ -1,3 +1,1 @@
-Author = Quin Li
-Date = 20251110
-Project = Geophysics
+# Agentic-03---Streamlit---Geophysics
