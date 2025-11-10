@@ -319,7 +319,6 @@ def adjust_button_font_size(size_px=8, height_px=50, color="#E91111", font_weigh
         button[data-testid*="stBaseButton"] {{
             height: {height_px}px !important;
             min-height: {height_px}px !important;
-            # padding: 0.5rem 1rem !important;
             vertical-align: middle !important;
         }}
 
@@ -335,52 +334,3 @@ def adjust_button_font_size(size_px=8, height_px=50, color="#E91111", font_weigh
         """,
         unsafe_allow_html=True
     )
-
-
-def sticky_chat_input():
-      st.markdown("""
-      <style>
-      [data-testid="stChatInput"] {
-          position: fixed !important;
-          bottom: 10px !important;
-          z-index: 1000 !important;
-          background: white !important;
-          padding: 12px 16px !important;
-          box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15) !important;
-          border: 1px solid #e0e0e0 !important;
-          border-radius: 16px !important;
-          left: 0 !important;
-          right: 0 !important;
-          width: auto !important;
-          margin-left: 300px !important;
-          margin-right: 500px !important;
-          transition: margin-left 0.3s ease !important;
-                  
-          /* Add height controls */
-          height: 65px !important;           /* Total container height */
-          min-height: 65px !important;       /* Minimum height */
-          max-height: 65px !important;       /* Maximum height */
-      }
-      
-      .main .block-container {
-          padding-bottom: 100px !important;
-      }
-      </style>
-      
-      <script>
-      function positionChatInput() {
-          const chatInput = document.querySelector('[data-testid="stChatInput"]');
-          const sidebar = document.querySelector('[data-testid="stSidebar"]');
-          
-          if (chatInput && sidebar) {
-              const sidebarWidth = sidebar.getBoundingClientRect().width;
-              const leftMargin = (sidebarWidth < 50) ? 40 : (sidebarWidth + 40);
-              chatInput.style.setProperty('margin-left', leftMargin + 'px', 'important');
-          }
-      }
-      
-      setInterval(positionChatInput, 200);
-      window.addEventListener('resize', positionChatInput);
-      setTimeout(positionChatInput, 100);
-      </script>
-      """, unsafe_allow_html=True)

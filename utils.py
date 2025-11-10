@@ -71,11 +71,6 @@ def check_password():
 
 # =========== Sidebar Components ===========
 def sidebar():
-    # sidebar_info()
-    # sidebar_warning()
-    # sidebar_error()
-    # sidebar_success("Data processed successfully!")
-
     st.sidebar.title("Data Upload and Settings")
     upload_geophysics_file()
 
@@ -139,8 +134,6 @@ def get_uploaded_data():
     return uploaded_files, geophysics_data
 
 def display_uploaded_data(uploaded_files, geophysics_data):
-    # uploaded_files, geophysics_data = get_uploaded_data()
-
     if len(uploaded_files) == 0:
         st.warning("No data uploaded yet. Please upload CSV files in the sidebar.")
 
@@ -196,7 +189,6 @@ def initialize_data_page_session_state():
 
     if 'trigger_auto_prompt' not in st.session_state:
         st.session_state.trigger_auto_prompt = False
-    
 
 
 def initialize_app_global_session_state():
@@ -208,5 +200,4 @@ def initialize_app_global_session_state():
 
     if 'all_geophysics' not in st.session_state:
         st.session_state['all_geophysics'] = {'geophysics_data': {}}
-
 

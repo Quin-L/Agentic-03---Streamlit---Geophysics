@@ -2,14 +2,9 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import streamlit as st
 from css import *
-import os
 
-# load_dotenv('/Users/qinli/secrets/.env')
 load_dotenv()
-# load_dotenv("C:\\Users\\qli\\OneDrive - CPB Contractors Pty LTD\\01 Digitisation Project\\Agentic 01\\.env")
 client = OpenAI()
-
-
 
 def get_analysis_instructions():
     """
@@ -43,7 +38,6 @@ def get_analysis_instructions():
             """
     return instructions
 
-
 def auto_prompt():
     """
     Get user-friendly prompt text for auto-triggered analysis.
@@ -63,19 +57,6 @@ def token_settings_and_controls():
                 st.session_state.chat_messages = []
                 st.rerun()
     return max_output_token
-
-
-def chatbot_section():
-    """Simple chatbot section with text area input and response display"""
-
-    st.header("Chatbot")
-    max_output_token = token_settings_and_controls()
-    user_prompt = st.text_area("Enter your prompt here:", value="", height=100)
-
-    if user_prompt:
-        stream = True
-        response = get_llm_response(user_prompt, max_output_token, stream=stream)
-        show_response(response, stream)
 
 
 def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
@@ -164,10 +145,8 @@ def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
             st.session_state.trigger_auto_prompt = False
 
         st.rerun()
-     
 
 
-# @st.cache_data
 def get_llm_response(prompt, history_message, system_content, max_output_token, stream=False):
     with st.spinner("Generating response..."):
         messages = [{"role": "system",  "content": system_content}]
@@ -202,8 +181,5 @@ def show_response(response, stream):
     elif not stream:
         full_response = response.output_text
         st.write(full_response)
-    
+
     return full_response
-
-
-
