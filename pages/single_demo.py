@@ -9,6 +9,8 @@ def show():
     ### 4. Note that we are following the jupyter notebook workflow here.
 
     ### For data page, maybe we can use edit dataframe instead of just showing dataframe?
+
+    ### give geospatial filtering options for data files that have location info?
 """
     st.write(next_step)
 
