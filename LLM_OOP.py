@@ -11,14 +11,15 @@ client = OpenAI()
 
 
 
-def auto_prompt():
+def get_analysis_instructions():
     """
-    Auto-generate a prompt whenever new data is uploaded.
+    Get system instructions for comprehensive data analysis.
+    Used in system_content for LLM, not displayed to user.
     """
-    prompt = """
+    instructions = """
             You are provided with raw geophysics data from field surveys. Perform a comprehensive initial data analysis.
             You need to be precise about your assessments.
-            
+
             ## 1. DATA OVERVIEW (2-3 sentences maximum)
             Identify and describe:
             - Dataset type (seismic, gravity, magnetic, resistivity, GPR, etc.)
@@ -40,7 +41,15 @@ def auto_prompt():
             - Be specific: instead of "some missing data", say "12.5% missing in elevation column"
             - Always provide exact data file or geophysics line when there is a findings
             """
-    return prompt
+    return instructions
+
+
+def auto_prompt():
+    """
+    Get user-friendly prompt text for auto-triggered analysis.
+    Displayed to user when files are uploaded.
+    """
+    return "Analyze the uploaded geophysics data and identify any issues or anomalies."
 
 
 def token_settings_and_controls():
@@ -84,31 +93,51 @@ def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
             st.markdown(message["content"])
 
     # Check if this is an auto-prompt trigger
-    
-    is_auto_prompt = st.session_state.get('trigger_auto_prompt', False) and not prompt
+    trigger_flag = st.session_state.get('trigger_auto_prompt', False)
+    is_auto_prompt = trigger_flag and not prompt
 
     if is_auto_prompt:
         prompt = initial_prompt
-        st.session_state.trigger_auto_prompt = False
 
     if prompt:
         adjusted_prompt = f"""
         User query: {prompt}
         """
 
-        system_content = f"""
-        You are an expert specialized in geotechnical engineering and geophysics.
-        You are also an expert in data processing and analysis using Python programming language.
-        Your task is to assist the user with their queries related to these fields.
+        # Use analysis instructions if auto-prompt, otherwise use general instructions
+        if is_auto_prompt:
+            analysis_instructions = get_analysis_instructions()
+        else:
+            analysis_instructions = ""
 
-        You have access to geophysics data from field surveys in various formats.
-        geophysics datas: {geophysics_data.keys()}if 
-        geophysics data columns for each dataset: { {key: geophysics_data[key].columns.tolist() for key in geophysics_data.keys()} }
-        brief info for each dataset: { {key: geophysics_data[key].info() for key in geophysics_data.keys()} }
-        descriptive statistics for each dataset: { {key: geophysics_data[key].describe().to_dict() for key in geophysics_data.keys()} }
-        
-        When user ask for anything that is not related to geotechnical engineering, geophysics, data processing, or Python programming,
-        politely inform them that you can only assist with topics related to these fields.
+        # Build data summary for the system message
+        data_summary = ""
+        if geophysics_data.keys():
+            data_summary = "AVAILABLE GEOPHYSICS DATA:\n"
+            for key in geophysics_data.keys():
+                df = geophysics_data[key]
+                data_summary += f"\n- Dataset: {key}\n"
+                data_summary += f"  Rows: {len(df)}, Columns: {len(df.columns)}\n"
+                data_summary += f"  Column names: {', '.join(df.columns.tolist())}\n"
+                data_summary += f"  Data types: {df.dtypes.to_dict()}\n"
+        else:
+            data_summary = "No datasets currently loaded."
+
+        system_content = f"""
+        You are an expert specialized in geotechnical engineering, geophysics, data processing, and Python programming.
+        Your primary task is to assist the user by analyzing geophysics data and answering technical questions within these fields.
+
+        {data_summary}
+
+        For questions within your expertise (geotechnical engineering, geophysics, data processing, Python):
+        - Provide thorough, detailed answers
+        - Analyze data when requested
+        - Help with technical problems and explanations
+
+        If a user asks about topics completely unrelated to your fields of expertise (sports, politics, entertainment, etc.),
+        politely explain that you specialize in geotechnical engineering, geophysics, data processing, and Python programming.
+
+        {analysis_instructions}
         """
 
         history_message = []
@@ -125,10 +154,16 @@ def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
             response = get_llm_response(adjusted_prompt, history_message, system_content, max_output_token, stream=True)
             full_response = show_response(response, stream=True)
 
-        # Only add to history if NOT auto-prompt
-        # if not is_auto_prompt:
-        st.session_state.chat_messages.append({"role": "user", "content": prompt})
+        # Add to history (skip user message for auto-prompt to keep it silent)
+        if not is_auto_prompt:
+            st.session_state.chat_messages.append({"role": "user", "content": prompt})
         st.session_state.chat_messages.append({"role": "assistant", "content": full_response})
+
+        # Clear auto-prompt flag after processing completes
+        if is_auto_prompt:
+            st.session_state.trigger_auto_prompt = False
+
+        st.rerun()
      
 
 
