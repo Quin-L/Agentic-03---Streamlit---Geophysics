@@ -3,6 +3,10 @@ import pandas as pd
 from utils import *
 from LLM_OOP import *
 from css import *
+import datetime
+
+now = datetime.datetime.now()
+
 
 
 def show():
@@ -14,21 +18,22 @@ def show():
 
     # ===== Main Page =====
     st.title(page_title)
-    # st.write("Welcome to the Geophysics Data Processing and Analysis App!")
+    st.write("Welcome to the Geophysics Data Processing and Analysis App!")
     st.divider()
+    # sticky_chat_input()
+
+    # ====== Initial State Management ======
+    initialize_data_page_session_state()
+
+    prompt = st.chat_input("Ask me anything ...")
 
     col1, col2, col3 = st.columns([7,0.5,4])
     uploaded_files, geophysics_data = get_uploaded_data()
-    prompt = st.chat_input("Ask me anything about the data and geophysics...")
+    check_file_changes(uploaded_files)
+
 
     with col1:
         display_uploaded_data(uploaded_files, geophysics_data)
-
-        # Check for file changes AFTER files are processed
-        geophysics_data = st.session_state['all_geophysics']['geophysics_data']
-        check_file_changes(geophysics_data)
-
-        # st.write(list(geophysics_data.keys()))
 
     with col3:
         initial_prompt = auto_prompt()

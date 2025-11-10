@@ -9,43 +9,6 @@ load_dotenv()
 # load_dotenv("C:\\Users\\qli\\OneDrive - CPB Contractors Pty LTD\\01 Digitisation Project\\Agentic 01\\.env")
 client = OpenAI()
 
-# @st.cache_data
-def get_llm_response(prompt, max_output_token, stream=False):
-    with st.spinner("Generating response..."):
-        response = client.responses.create(
-            model="gpt-4o-mini",
-            input=[{
-                "role" : "user",
-                "content" : prompt
-            }],
-            max_output_tokens=max_output_token,
-            # background=True,
-            stream = stream,
-        )
-        return response
-    
-def show_response(response, stream):
-    """
-    Display the response from the LLM in Streamlit.
-    Can handle both streaming and non-streaming responses.
-    Response is based on OpenAI's streaming response format.
-    Args:
-        response (str): The response object from the LLM (OpenAI).
-        stream (bool): Whether the response is streamed or not (OpenAI).
-    """
-    if stream:
-        full_response = ""
-        response_placeholder = st.empty()
-        for chunk in response:
-            if hasattr(chunk, 'delta') and chunk.delta:
-                full_response += chunk.delta
-                response_placeholder.markdown(full_response)
-
-    elif not stream:
-        full_response = response.output_text
-        st.write(full_response)
-    
-    return full_response
 
 
 def auto_prompt():
@@ -115,16 +78,13 @@ def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
     st.subheader("!!! Note, chat history is preserved, agent short term memory up to 5 messages.")
     max_output_token = token_settings_and_controls()
 
-    # Initialize chat history in session state
-    if "chat_messages" not in st.session_state:
-        st.session_state.chat_messages = []
-
     # Display all existing chat messages
     for message in st.session_state.chat_messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
     # Check if this is an auto-prompt trigger
+    
     is_auto_prompt = st.session_state.get('trigger_auto_prompt', False) and not prompt
 
     if is_auto_prompt:
@@ -132,25 +92,28 @@ def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
         st.session_state.trigger_auto_prompt = False
 
     if prompt:
-        history_context = "\n".join(f"{message['role'].upper()}:{message['content']}" for message in st.session_state.chat_messages[-5:])
-
         adjusted_prompt = f"""
+        User query: {prompt}
+        """
 
+        system_content = f"""
         You are an expert specialized in geotechnical engineering and geophysics.
         You are also an expert in data processing and analysis using Python programming language.
         Your task is to assist the user with their queries related to these fields.
 
-        geophysics_data: {geophysics_data}
-
-        User query: {prompt}
-
-        You have access to conversation history for context.
-
-        conversation history:{history_context}
-
+        You have access to geophysics data from field surveys in various formats.
+        geophysics datas: {geophysics_data.keys()}if 
+        geophysics data columns for each dataset: { {key: geophysics_data[key].columns.tolist() for key in geophysics_data.keys()} }
+        brief info for each dataset: { {key: geophysics_data[key].info() for key in geophysics_data.keys()} }
+        descriptive statistics for each dataset: { {key: geophysics_data[key].describe().to_dict() for key in geophysics_data.keys()} }
+        
         When user ask for anything that is not related to geotechnical engineering, geophysics, data processing, or Python programming,
         politely inform them that you can only assist with topics related to these fields.
         """
+
+        history_message = []
+        for message in st.session_state.chat_messages[-5:]:
+            history_message.append({"role": message["role"], "content": message["content"]})
 
         # Only display user message if NOT auto-prompt
         if not is_auto_prompt:
@@ -159,7 +122,7 @@ def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
 
         # Get and display assistant response with streaming
         with st.chat_message("assistant"):
-            response = get_llm_response(adjusted_prompt, max_output_token, stream=True)
+            response = get_llm_response(adjusted_prompt, history_message, system_content, max_output_token, stream=True)
             full_response = show_response(response, stream=True)
 
         # Only add to history if NOT auto-prompt
@@ -167,4 +130,45 @@ def chatbot_chat_interface(prompt, geophysics_data, initial_prompt):
         st.session_state.chat_messages.append({"role": "user", "content": prompt})
         st.session_state.chat_messages.append({"role": "assistant", "content": full_response})
      
+
+
+# @st.cache_data
+def get_llm_response(prompt, history_message, system_content, max_output_token, stream=False):
+    with st.spinner("Generating response..."):
+        messages = [{"role": "system",  "content": system_content}]
+        messages.extend(history_message)
+        messages.append({"role": "user", "content": prompt})
+
+        response = client.responses.create(
+            model="gpt-4o-mini",
+            input=messages,
+            max_output_tokens=max_output_token,
+            stream = stream,
+        )
+        return response
+    
+def show_response(response, stream):
+    """
+    Display the response from the LLM in Streamlit.
+    Can handle both streaming and non-streaming responses.
+    Response is based on OpenAI's streaming response format.
+    Args:
+        response (str): The response object from the LLM (OpenAI).
+        stream (bool): Whether the response is streamed or not (OpenAI).
+    """
+    if stream:
+        full_response = ""
+        response_placeholder = st.empty()
+        for chunk in response:
+            if hasattr(chunk, 'delta') and chunk.delta:
+                full_response += chunk.delta
+                response_placeholder.markdown(full_response)
+
+    elif not stream:
+        full_response = response.output_text
+        st.write(full_response)
+    
+    return full_response
+
+
 

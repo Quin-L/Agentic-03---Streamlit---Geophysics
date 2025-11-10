@@ -125,21 +125,14 @@ def upload_geophysics_file():
         existing_names = {f.name for f in st.session_state.get('uploaded_files', [])}
         new_files = [f for f in uploaded if f.name not in existing_names]
 
-
         if new_files:
             # Append only new files
             current_files = st.session_state.get('uploaded_files', [])
             st.session_state['uploaded_files'] = current_files + new_files
 
-    elif 'uploaded_files' not in st.session_state:
-        st.session_state['uploaded_files'] = []
-
 # =========== Data page utils ===========
 def get_uploaded_data():
     uploaded_files = st.session_state.get('uploaded_files', [])
-    if 'all_geophysics' not in st.session_state:
-        st.session_state['all_geophysics'] = {'geophysics_data': {}}
-
     all_geophysics = st.session_state['all_geophysics']
     geophysics_data = all_geophysics['geophysics_data']
 
@@ -173,12 +166,9 @@ def display_uploaded_data(uploaded_files, geophysics_data):
                 if uploaded_filename in geophysics_data.keys():
                     st.dataframe(geophysics_data[uploaded_filename].head(20))
 
-def check_file_changes(geophysics_data):
-    current_files = list(geophysics_data.keys())
-
-    # Initialize on first run
-    if 'previous_files' not in st.session_state:
-        st.session_state['previous_files'] = []
+def check_file_changes(uploaded_files):
+    # Extract filenames from uploaded files
+    current_files = [f.name.rstrip(".csv") for f in uploaded_files]
 
     # Check if this is initial upload (previous was empty, now has files)
     was_empty = len(st.session_state['previous_files']) == 0
@@ -197,7 +187,26 @@ def check_file_changes(geophysics_data):
 
 
 
+def initialize_data_page_session_state():
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
+
+    if 'previous_files' not in st.session_state:
+        st.session_state.previous_files = []
+
+    if 'trigger_auto_prompt' not in st.session_state:
+        st.session_state.trigger_auto_prompt = False
+    
 
 
+def initialize_app_global_session_state():
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if 'uploaded_files' not in st.session_state:
+        st.session_state['uploaded_files'] = []
+
+    if 'all_geophysics' not in st.session_state:
+        st.session_state['all_geophysics'] = {'geophysics_data': {}}
 
 
