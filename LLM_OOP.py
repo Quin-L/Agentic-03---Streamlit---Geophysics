@@ -43,7 +43,22 @@ def auto_prompt():
     Get user-friendly prompt text for auto-triggered analysis.
     Displayed to user when files are uploaded.
     """
-    return "Analyze the uploaded geophysics data and identify any issues or anomalies."
+    auto_prompt = """
+        1. Analyze the uploaded geophysics data and identify any issues or anomalies.
+        2. Check for data inconsistency across different files, especially focusing on the column names, some data may not have the same column names, and this would be problematic and would require user intervention to fix them.
+            - Get understanding  of what is the most likely column names for common geophysics data
+            - The length of column should be the same across all files, if not, flag this as a potential issue.
+            - This should be done based on what column headings appears the most across all uploaded files.
+            - Identify and missing or inconsistent column names across different files as compared to the most common column names, and suggest me which file has the issue.
+        3. Check into details of each column, and suggest the range of the data, and these information should be used to compared against typical expected ranges across the majority of geophysics data.
+            - For example, if depth / elevation values are expected to be between 0-100m, but one file has depth values ranging from 0-1000m, flag this as a potential issue.
+            - For example, if easting and northing values are expected to be within a certain coordinate system range, but one file has values outside this range, flag this as a potential issue.
+            - For example, if velocity values are expected to be within typical geophysics survey ranges, but one file has values that are significantly higher or lower, flag this as a potential issue.
+        4. Easting and northing values, and elevation values should also be checked for consistency.
+        5. Summarize your findings and suggest next steps for data cleaning or validation.
+    """
+
+    return auto_prompt
 
 
 def token_settings_and_controls():

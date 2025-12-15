@@ -157,7 +157,7 @@ def display_uploaded_data(uploaded_files, geophysics_data):
 
                 st.write(f"{idx+1}, {uploaded_file.name}")
                 if uploaded_filename in geophysics_data.keys():
-                    st.dataframe(geophysics_data[uploaded_filename].head(20))
+                    st.dataframe(geophysics_data[uploaded_filename])
 
 def check_file_changes(uploaded_files):
     # Extract filenames from uploaded files
