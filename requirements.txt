@@ -5,3 +5,8 @@ python-dotenv
 streamlit
 openai
 aisuite
+statsmodels
+ipython
+jupyter
+openpyxl
+nbformat>=4.2.0

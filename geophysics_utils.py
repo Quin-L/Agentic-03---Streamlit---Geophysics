@@ -3,18 +3,134 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+# For notebook
+import plotly.express as px 
+import statsmodels.api as sm
+import scipy.stats as stats
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import re
+import plotly.io as pio
+from IPython.display import display
+pio.renderers.default = 'notebook'
+
+
+# ============================================================================
+# CONSTANTS
+# ============================================================================
+
+CONSISTENCY_ORDER = ['VS','S','F','St', 'VSt', 'H', 'VL','L','MD', 'D', 'VD', '5a', '5b','4a','4b','3a','3b','2a','2b','1a','1b']
+HOVER_DATA = ['Geophysics_ID','Hole_ID', 'From_RL','Chainage', 'Velocity', 'Consistency', 'Geology_Orgin', 'perpendicular_offset']
+
+
+# ============================================================================
+# UTILITIES
+# ============================================================================
 
 def calculate_x(x, y):
     return math.sqrt(x**2 + y**2)
 
 
+# ============================================================================
+# DATA IMPORT & FILTERING
+# ============================================================================
+
+def data_processing_summary(total_files, processed_files, all_geophysics, skipped_files, EASTING_RANGE, NORTHING_RANGE):
+    display("\n")
+    print("="*60)
+    print("DATA PROCESSING SUMMARY")
+    print("="*60)
+    print(f"Total CSV files found:        {total_files}")
+    print(f"Files processed:              {processed_files}")
+    print(f"Files skipped (out of range): {skipped_files}")
+    print(f"\nStudy Area Range:")
+    print(f"  Easting:  {EASTING_RANGE[0]:,.0f} - {EASTING_RANGE[1]:,.0f}")
+    print(f"  Northing: {NORTHING_RANGE[0]:,.0f} - {NORTHING_RANGE[1]:,.0f}")
+    print(f"\nProcessed Geophysics Lines:")
+    for line_id in all_geophysics['geophysics_data'].keys():
+        line_df = all_geophysics['geophysics_data'][line_id]
+        print(f"  {line_id}: {len(line_df):,} data points")
+    print("="*60)
+
+
+def should_process_geophysics(df, easting_range, northing_range):
+    """
+    Check if geophysics line should be processed based on study area range.
+
+    If ANY part of the line is within or intersects the range, return True
+    and the entire line will be processed.
+
+    Parameters:
+    -----------
+    df : DataFrame with 'Easting', 'Northing' columns
+    easting_range : [min, max] - study area easting bounds
+    northing_range : [min, max] - study area northing bounds
+
+    Returns:
+    --------
+    bool : True if line intersects range (process entire line)
+           False if completely outside range (skip entirely)
+    """
+    if df.empty:
+        return False
+
+    # Get bounding box of geophysics line
+    geo_e_min = df['Easting'].min()
+    geo_e_max = df['Easting'].max()
+    geo_n_min = df['Northing'].min()
+    geo_n_max = df['Northing'].max()
+
+    # Check if completely outside range
+    # Outside if: line_max < range_min OR line_min > range_max
+    outside_easting = (geo_e_max < easting_range[0]) or (geo_e_min > easting_range[1])
+    outside_northing = (geo_n_max < northing_range[0]) or (geo_n_min > northing_range[1])
+
+    # If completely outside, don't process
+    if outside_easting or outside_northing:
+        return False
+
+    # Otherwise (within or intersects), process the entire line
+    return True
+
+
+# ============================================================================
+# GEOPHYSICS DATA PROCESSING
+# ============================================================================
+
 def compute_chainage(df):
-    dx = np.diff(df.Easting)
-    dy = np.diff(df.Northing)
-    seg = np.sqrt(dx**2 + dy**2)
-    chainage = np.concatenate([[0], np.cumsum(seg)])
-    df['Chainage'] = chainage
-    df["Spacing"] = np.r_[np.nan, seg] # note, in numpy, np.r_ is same as np.concatenate
+    """
+    Compute chainage for straight geophysics survey lines.
+
+    Calculates distance from west endpoint (min Easting) and east endpoint (max Easting).
+    Assumes survey line is a straight line.
+
+    Returns:
+    --------
+    df : DataFrame with added 'Chainage_west_to_east' and 'Chainage_east_to_west' columns
+    """
+    df = df.copy()
+
+    # Extract coordinates
+    easting = df['Easting'].values
+    northing = df['Northing'].values
+
+    # Find endpoints
+    west_idx = np.argmin(easting)
+    east_idx = np.argmax(easting)
+
+    # ============ West to East (distance from west endpoint) ============
+    west_point = np.array([easting[west_idx], northing[west_idx]])
+    dist_from_west = np.sqrt((easting - west_point[0])**2 +
+                             (northing - west_point[1])**2)
+    df['computed_Chainage_ascending'] = np.round(dist_from_west, 2)
+
+    # ============ East to West (distance from east endpoint) ============
+    east_point = np.array([easting[east_idx], northing[east_idx]])
+    dist_from_east = np.sqrt((easting - east_point[0])**2 +
+                             (northing - east_point[1])**2)
+    df['computed_Chainage_descending'] = np.round(dist_from_east, 2)
+
     return df
 
 
@@ -35,10 +151,15 @@ def classify_soil(cons):
 
 
 def process_individual_geophysics(df, velocity_interval=5):
+    
     # filter and sort
     df = df.drop_duplicates()
+    df = df.dropna(subset=['Velocity'])
+
+    # compute chainage from coordinates (straight line assumption)
+    df = compute_chainage(df)
     df = df[df['Velocity'] % velocity_interval == 0]
-    df = df.sort_values(['Easting','Northing','Chainage','Elevation'], 
+    df = df.sort_values(['Easting','Northing','Chainage','Elevation'],
                         ascending=[True, True, True, False]).reset_index(drop=True)
 
     # shift within each coordinate group
@@ -48,11 +169,12 @@ def process_individual_geophysics(df, velocity_interval=5):
     # drop incomplete rows
     df = df.dropna(subset=['To_RL'])
 
-    # build final dataframe
-    df = df[['Easting','Northing','Chainage','From_RL','To_RL','Velocity']].copy()
+    # build final dataframe - include computed chainage columns at the end
+    df = df[['Easting','Northing','Chainage','From_RL','To_RL','Velocity',
+             'computed_Chainage_ascending','computed_Chainage_descending']].copy()
     df['Layer_center'] = (df['From_RL'] + df['To_RL']) / 2
     df = df[df['To_RL'] != df['From_RL']]
-    # df = df.sort_values(['Easting','Northing','Chainage','From_RL'], 
+    # df = df.sort_values(['Easting','Northing','Chainage','From_RL'],
     #                 ascending=[True, True, True, False]).reset_index(drop=True)
 
     return df
@@ -74,6 +196,10 @@ def resample_data(df, step=1):
                           })
     return new_df
 
+
+# ============================================================================
+# SPATIAL ANALYSIS
+# ============================================================================
 
 def offset_bh_geophysics_line(geophysics, BH_coordinates):
     """
@@ -161,6 +287,10 @@ def offset_bh_geophysics_line(geophysics, BH_coordinates):
     return tangential_offset, perpendicular_offset
 
 
+# ============================================================================
+# DATA MERGING
+# ============================================================================
+
 def merge_geophysics_bh_consistency(geophysics_bh_results, geophysics_id, geophysics_df, hole_id, bh_interp_df):
     
     for _, geo_row in geophysics_df.iterrows():
@@ -240,6 +370,23 @@ def add_to_register(geophysics_BH_register, individual_geophysics_ID, BH_ID, cha
         "perpendicular_offset" : perpendicular_offset,
     }
     geophysics_BH_register.append(record)
+
+
+# ============================================================================
+# VISUALIZATION HELPERS (continued)
+# ============================================================================
+
+def plot_geophysics(df, x='Chainage', y='To_RL', color='Velocity', title=None, height=500, range_color=[50,1000]):
+    fig = px.scatter(df, x, y,  color=color, title=title, height=height, color_continuous_scale="jet",range_color=range_color)
+    fig.update_layout(
+        coloraxis_colorbar=dict(
+            title="S-Velocity (m/s)",
+            tickmode="linear",
+            tick0=50,
+            dtick=100
+        )
+    )
+    return fig
 
 
 def add_background_geophysics(all_geophysics, Geophysics_ID, fig, transpareny=0.5, marker_size=3):
